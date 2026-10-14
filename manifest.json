@@ -1,0 +1,9 @@
+{
+  "name": "Smart Order Counter",
+  "short_name": "Order Counter",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f2efe8",
+  "theme_color": "#762020",
+  "orientation": "portrait"
+}
