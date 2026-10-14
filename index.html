@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#762020">
+<title>Smart Order Counter</title>
+<style>
+:root{--red:#762020;--green:#3f6743;--cream:#fffaf0;--bg:#f2efe8;--ink:#262626;--line:#e4ded2}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--red);color:#fff;padding:13px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px #0002}
+header h1{font-size:19px;margin:0}header small{opacity:.9}
+nav{display:flex;gap:6px;padding:8px;background:#fff;position:sticky;top:58px;z-index:9;box-shadow:0 2px 4px #0001}
+nav button{flex:1;border:0;border-radius:10px;padding:10px 3px;background:#eee;color:#333;font-weight:750;font-size:13px}
+nav button.active{background:var(--red);color:white}
+main{max-width:760px;margin:auto;padding:10px 12px 30px}.screen{display:none}.screen.active{display:block}
+.card{background:#fff;border-radius:14px;padding:13px;margin:10px 0;box-shadow:0 2px 7px #0000000b}
+h2{font-size:18px;margin:2px 0 10px}h3{font-size:15px;margin:5px 0 8px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stat{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:12px}.stat small{display:block;color:#666}.stat b{font-size:21px}
+.pay{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pay button,.btn{border:1px solid #c9c2b8;border-radius:10px;background:#fff;padding:12px;font-weight:750}
+.pay button.active{border:2px solid var(--red);background:#faeaea;color:var(--red)}
+.menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.menu-item{border:0;border-radius:14px;background:#fff;min-height:118px;padding:13px 9px;box-shadow:0 2px 7px #00000012;font-weight:750}
+.menu-item .num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;margin-bottom:5px}
+.menu-item .name{display:block;font-size:15px;line-height:1.25;overflow-wrap:anywhere}.menu-item .price{display:block;color:var(--green);font-size:22px;margin-top:6px}.qtybar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.qtybar button{border:1px solid #c9c2b8;background:#fff;border-radius:9px;min-width:42px;padding:10px 12px;font-weight:800}.qtybar button.active{background:var(--red);border-color:var(--red);color:#fff}.qtybar input{width:78px;padding:9px;text-align:center}.recent-row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #eee}.recent-row:last-child{border-bottom:0}.recent-row small{display:block;color:#666;font-size:12px}
+.btn.primary{background:var(--red);color:white;border-color:var(--red)}.btn.green{background:var(--green);color:white;border-color:var(--green)}.btn.danger{color:#9b1c1c;border-color:#c77}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0}.btnrow .btn{flex:1;min-width:120px}
+.muted{color:#666;font-size:13px}.line{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eee}.line:last-child{border:0}
+label{display:block;font-size:13px;font-weight:700;margin:9px 0 3px}input,select{width:100%;padding:11px;border:1px solid #c9c2b8;border-radius:9px;background:#fff;font:inherit}
+.fieldgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.itemedit{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.itemedit .fieldgrid{grid-template-columns:1.4fr .7fr}.checkrow{display:flex;align-items:center;gap:8px;margin-top:8px}.checkrow input{width:auto}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:8px 5px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}th{background:#faf7f0}
+.tablewrap{overflow:auto}.pill{display:inline-block;padding:3px 7px;border-radius:20px;background:#eee;font-size:11px}
+.notice{background:#fff7d9;border:1px solid #e9d38a;padding:10px;border-radius:10px;font-size:13px}
+.empty{text-align:center;padding:20px;color:#777}
+@media(min-width:600px){.menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,1fr)}nav button{font-size:14px}}
+
+/* One-second entry confirmation */
+#entryToast{position:fixed;left:50%;bottom:calc(82px + env(safe-area-inset-bottom,0px));transform:translate(-50%,14px);width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;padding:12px 16px;border-radius:14px;background:#163b2b;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.24);z-index:9999;display:flex;align-items:center;gap:10px;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;font-size:14px;line-height:1.35}
+#entryToast.show{opacity:1;transform:translate(-50%,0)}
+#entryToast .toast-check{width:25px;height:25px;border-radius:50%;background:#fff;color:#16804a;display:grid;place-items:center;font-weight:800;flex-shrink:0}
+#entryToast .toast-title{font-weight:800}
+#entryToast .toast-detail{font-size:12px;opacity:.9;margin-top:2px}
+@media (prefers-reduced-motion:reduce){#entryToast{transition:none}}
+
+</style>
+</head>
+<body>
+<header><h1 id="appTitle">SMART ORDER COUNTER</h1><small id="headerSub">Fast sales • Local records</small></header>
+<nav>
+<button data-screen="orders" class="active">🛒 Orders</button>
+<button data-screen="summary">📊 Today</button>
+<button data-screen="history">📒 History</button>
+<button data-screen="reports">⬇ Reports</button>
+<button data-screen="settings">⚙ Settings</button>
+</nav>
+<main>
+<section id="orders" class="screen active">
+<div class="card">
+<div class="muted">Choose how the customer paid, then tap a menu item once per unit sold.</div>
+<div class="pay" style="margin-top:10px">
+<button id="cashPay" class="active" onclick="setPayment('Cash')">💵 Cash</button>
+<button id="onlinePay" onclick="setPayment('Online')">📱 Online / UPI</button>
+</div>
+<div class="muted" style="margin-top:8px">Selected payment: <b id="paymentLabel">Cash</b></div>
+</div>
+<div class="card" style="padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Quick quantity</b><span class="muted">Choose once, then tap item</span></div><div class="qtybar" style="margin-top:8px"><button class="active" data-qty="1" onclick="setQty(1)">1</button><button data-qty="2" onclick="setQty(2)">2</button><button data-qty="3" onclick="setQty(3)">3</button><button data-qty="5" onclick="setQty(5)">5</button><label style="margin:0 0 0 3px">Custom</label><input id="customQty" type="number" min="1" max="99" step="1" inputmode="numeric" placeholder="Qty" onchange="setQty(this.value)" onkeydown="if(event.key==='Enter'){setQty(this.value);this.blur()}"></div><div class="muted" style="margin-top:6px">Selected quantity: <b id="selectedQty">1</b>. After each sale it returns to 1 for safety.</div></div>
+<div id="menuGrid" class="menu-grid"></div>
+<details class="card" id="quickAdjustment" style="padding:0;overflow:hidden">
+<summary style="padding:13px;cursor:pointer;font-weight:800;list-style-position:inside">＋ / − Quick amount <span class="muted" style="font-weight:500">(non-menu collection or expense)</span></summary>
+<div style="padding:0 12px 12px">
+<div class="fieldgrid"><div><label>Amount</label><input id="adjustAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="₹ Amount"></div><div><label>Action</label><select id="adjustAction"><option value="add">＋ Add</option><option value="remove">− Remove</option></select></div></div>
+<div class="fieldgrid"><div><label>Payment</label><select id="adjustPayment"><option>Cash</option><option>Online</option></select></div><div><label>Reason (optional)</label><input id="adjustNote" placeholder="Reason"></div></div>
+<div class="btnrow"><button class="btn primary" onclick="addAdjustment()">Save amount</button></div><div id="adjustmentSummary"></div><div id="adjustmentRows"></div>
+</div></details>
+<div class="card">
+<div class="line"><span>Today's item count</span><b id="quickCount">0</b></div>
+<div class="line"><span>Today's sales</span><b id="quickSales">₹0</b></div>
+<h3 style="margin-top:12px">Last 5 transactions</h3><div id="lastOrders"><div class="muted">No transactions yet.</div></div>
+<div class="btnrow"><button class="btn" onclick="undoLast()">↶ Undo last sale</button><button class="btn" onclick="go('history')">View sales history</button></div>
+</div>
+</section>
+
+<section id="summary" class="screen">
+<h2>Today's Dashboard</h2>
+<div class="stats">
+<div class="stat"><small>Items sold</small><b id="sumItems">0</b></div>
+<div class="stat"><small>Total sales</small><b id="sumSales">₹0</b></div>
+<div class="stat"><small>Cash received</small><b id="sumCash">₹0</b></div>
+<div class="stat"><small>Online received</small><b id="sumOnline">₹0</b></div>
+</div>
+<div class="card"><h3>Product-wise quantity & revenue</h3><div id="todayItemRows"></div></div>
+<div class="card"><h3>Category-wise performance</h3><div id="categoryRows"></div></div>
+<div class="card"><h3>Payment-wise product report</h3><div id="paymentProductRows"></div></div>
+<div class="card"><h3>Payment reconciliation</h3><div id="paymentRows"></div><p class="muted">Compare these totals with the cash in your drawer and your UPI/bank collection.</p></div>
+
+<div class="btnrow"><button class="btn primary" onclick="go('reports')">Create custom report</button><button class="btn" onclick="exportAllCSV()">Export all sales</button></div>
+</section>
+
+<section id="history" class="screen">
+<h2>Sales History</h2>
+<div class="card">
+<div class="fieldgrid"><div><label>Search item</label><input id="historySearch" placeholder="Item name" oninput="renderHistory()"></div><div><label>Payment</label><select id="historyPayment" onchange="renderHistory()"><option>All</option><option>Cash</option><option>Online</option></select></div></div>
+<div class="fieldgrid"><div><label>From date</label><input type="date" id="historyFrom" onchange="renderHistory()"></div><div><label>To date</label><input type="date" id="historyTo" onchange="renderHistory()"></div></div>
+<div id="historyTotals" class="muted" style="margin-top:10px"></div>
+</div>
+<div class="card tablewrap"><table><thead><tr><th>Date/time</th><th>Item</th><th>₹</th><th>Payment</th><th></th></tr></thead><tbody id="historyRows"></tbody></table><div id="historyEmpty" class="empty hidden">No matching sales.</div></div>
+</section>
+
+<section id="reports" class="screen">
+<h2>Custom CSV Report</h2>
+<div class="card">
+<p class="muted">Choose any date and time range, then optionally filter by payment type or menu item. The CSV includes a summary and individual sales entries and opens in Excel.</p>
+<div class="fieldgrid"><div><label>Start date</label><input type="date" id="rStartDate"></div><div><label>Start time</label><input type="time" id="rStartTime" value="00:00"></div></div>
+<div class="fieldgrid"><div><label>End date</label><input type="date" id="rEndDate"></div><div><label>End time</label><input type="time" id="rEndTime" value="23:59"></div></div>
+<div class="fieldgrid"><div><label>Payment type</label><select id="rPayment"><option>All</option><option>Cash</option><option>Online</option></select></div><div><label>Menu item</label><select id="rItem"><option value="All">All items</option></select></div></div>
+<div class="card" style="background:#faf7f0"><h3>Report preview</h3><div id="reportPreview">Select a date range.</div></div>
+<div class="btnrow"><button class="btn primary" onclick="downloadReport()">Download custom CSV</button><button class="btn" onclick="setTodayReport()">Today</button><button class="btn" onclick="setYesterdayReport()">Yesterday</button></div>
+</div>
+</section>
+
+<section id="settings" class="screen">
+<h2>Settings</h2>
+<div class="card">
+<h3>Business / menu setup</h3><label>Business title</label><input id="businessTitle" placeholder="Your business name">
+<label>Optional subtitle</label><input id="businessSubtitle" placeholder="e.g. Fresh • Tasty • Made with Love">
+<label>Currency symbol</label><input id="currencySymbol" maxlength="5" value="₹">
+</div>
+<div class="card">
+<h3>Menu items and prices</h3><p class="muted">Edit names, prices, categories and whether a button is visible. Existing sales keep the price recorded at the time of sale.</p>
+<div id="editItems"></div>
+<div class="btnrow"><button class="btn" onclick="addMenuItem()">＋ Add menu item</button><button class="btn" onclick="importMenuClick()">Import menu CSV</button></div>
+<input type="file" id="menuFile" accept=".csv,text/csv" class="hidden" onchange="importMenuCSV(event)">
+<p class="muted">CSV columns: Number, Name, Price, Category, Enabled. Category is optional.</p>
+<div class="btnrow"><button class="btn primary" onclick="saveSettings()">Save settings</button><button class="btn" onclick="downloadMenuTemplate()">Download menu template</button></div>
+</div>
+<div class="card">
+<h3>Data backup and maintenance</h3>
+<div class="btnrow"><button class="btn green" onclick="backupAll()">Download full backup</button><button class="btn" onclick="restoreBackupClick()">Restore backup</button></div>
+<input type="file" id="backupFile" accept=".json,application/json" class="hidden" onchange="restoreBackup(event)">
+<div class="btnrow"><button class="btn" onclick="exportAllCSV()">Export all sales CSV</button><button class="btn danger" onclick="clearSales()">Clear all sales</button></div>
+<div class="notice">Sales and settings are stored locally in this browser on this phone. Download regular backups. Clearing browser/site data may erase records if you have not backed them up.</div>
+</div>
+</section>
+</main>
+<script>
+const CONFIG_KEY='smartOrderCounter_config_v1', SALES_KEY='smartOrderCounter_sales_v1', ADJUST_KEY='smartOrderCounter_adjustments_v1';
+const defaults=[
+{id:1,name:'Regular Khichu',price:40,category:'Khichu',enabled:true},
+{id:2,name:'Khichu Bites',price:50,category:'Khichu',enabled:true},
+{id:3,name:'Butter Corn',price:40,category:'Sweet Corn',enabled:true},
+{id:4,name:'Butter Corn Chaat',price:60,category:'Sweet Corn',enabled:true},
+{id:5,name:'Cheese Butter Corn Chaat',price:80,category:'Sweet Corn',enabled:true}
+];
+let config=loadJSON(CONFIG_KEY,{title:'KHICHU & SWEET CORN',subtitle:'Quick Order Counter',currency:'₹',items:defaults});
+let sales=loadJSON(SALES_KEY,[]);
+let adjustments=loadJSON(ADJUST_KEY,[]);
+let payment='Cash';
+let selectedQty=1;
+function loadJSON(k,d){try{const x=localStorage.getItem(k);return x?JSON.parse(x):d}catch(e){return d}}
+function persist(){localStorage.setItem(CONFIG_KEY,JSON.stringify(config));localStorage.setItem(SALES_KEY,JSON.stringify(sales));localStorage.setItem(ADJUST_KEY,JSON.stringify(adjustments))}
+function money(n){return (config.currency||'₹')+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function dateLocal(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function timeLocal(d=new Date()){return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setPayment(p){payment=p;document.getElementById('cashPay').classList.toggle('active',p==='Cash');document.getElementById('onlinePay').classList.toggle('active',p==='Online');document.getElementById('paymentLabel').textContent=p==='Online'?'Online / UPI':p}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));if(id==='summary')renderSummary();if(id==='history')renderHistory();if(id==='reports'){fillReportItems();previewReport()}if(id==='settings')renderSettings();window.scrollTo(0,0)}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.screen)));
+let entryToastTimer=null;
+function setQty(value){const n=Math.floor(Number(value));if(!Number.isFinite(n)||n<1||n>99){selectedQty=1}else{selectedQty=n}document.querySelectorAll('[data-qty]').forEach(b=>b.classList.toggle('active',Number(b.dataset.qty)===selectedQty));document.getElementById('selectedQty').textContent=selectedQty;const custom=document.getElementById('customQty');if(custom && Number(custom.value)!==selectedQty)custom.value='';}
+function showEntryToast(item,qty,total){
+ const toast=document.getElementById('entryToast');
+ if(!toast)return;
+ const title=document.getElementById('entryToastTitle');
+ const detail=document.getElementById('entryToastDetail');
+ title.textContent=`✓ ${qty} ${qty===1?'item':'items'} added`;
+ detail.textContent=`${item.name} · ${money(total)} · ${payment}`;
+ toast.classList.add('show');
+ if(entryToastTimer)clearTimeout(entryToastTimer);
+ entryToastTimer=setTimeout(()=>toast.classList.remove('show'),1000);
+}
+function addSale(item){const qty=selectedQty,now=new Date(),batchId=Date.now().toString(36)+Math.random().toString(36).slice(2,7),date=dateLocal(now),time=timeLocal(now),stamp=now.getTime();for(let n=0;n<qty;n++)sales.push({id:batchId+'-'+n,batchId,itemId:item.id,name:item.name,category:item.category||'',price:Number(item.price),payment,date,time,timestamp:stamp+n});selectedQty=1;setQty(1);persist();renderAll();showEntryToast(item,qty,Number(item.price)*qty);if(navigator.vibrate)navigator.vibrate(25)}
+function renderMenu(){const el=document.getElementById('menuGrid');el.innerHTML='';config.items.filter(i=>i.enabled).forEach(item=>{const b=document.createElement('button');b.className='menu-item';b.innerHTML=`<span class="num">${esc(item.id)}</span><span class="name">${esc(item.name)}</span><span class="price">${money(item.price)}</span>`;b.onclick=()=>addSale(item);el.appendChild(b)});if(!el.children.length)el.innerHTML='<div class="empty">No enabled menu items. Open Settings.</div>'}
+function daySales(date=dateLocal()){return sales.filter(s=>s.date===date)}
+function sum(rows){return rows.reduce((a,s)=>a+Number(s.price||0),0)}
+function renderQuick(){const rows=daySales();document.getElementById('quickCount').textContent=rows.length;document.getElementById('quickSales').textContent=money(sum(rows));const groups=[];sales.slice().reverse().forEach(s=>{const key=s.batchId||s.id;let g=groups.find(x=>x.key===key);if(!g){g={key,name:s.name,time:s.time,payment:s.payment,price:Number(s.price)||0,qty:0};groups.push(g)}g.qty++});document.getElementById('lastOrders').innerHTML=groups.slice(0,5).map(g=>`<div class="recent-row"><span><b>${esc(g.name)}${g.qty>1?' ×'+g.qty:''}</b><small>${esc(g.time)} · ${esc(g.payment)}</small></span><b>${money(g.price*g.qty)}</b></div>`).join('')||'<div class="muted">No transactions yet.</div>'}
+function renderSummary(){const rows=daySales(),cash=rows.filter(s=>s.payment==='Cash'),online=rows.filter(s=>s.payment==='Online'),adj=dayAdjustments(),cashAdj=adj.filter(a=>a.payment==='Cash'),onlineAdj=adj.filter(a=>a.payment==='Online');const cashNet=sum(cash)+sumAdjustments(cashAdj),onlineNet=sum(online)+sumAdjustments(onlineAdj);document.getElementById('sumItems').textContent=rows.length;document.getElementById('sumSales').textContent=money(sum(rows));document.getElementById('sumCash').textContent=money(sum(cash));document.getElementById('sumOnline').textContent=money(sum(online));document.getElementById('todayItemRows').innerHTML=config.items.map(i=>{const r=rows.filter(s=>String(s.itemId)===String(i.id));return `<div class="line"><span>${esc(i.name)}<small style="display:block;color:#666">Qty ${r.length} · Avg ${money(r.length?sum(r)/r.length:0)} each</small></span><b>${money(sum(r))}</b></div>`}).join('')||'<div class="empty">No menu items.</div>';const cats=[...new Set(config.items.map(i=>i.category||'Uncategorised').concat(rows.map(s=>s.category||'Uncategorised')))];document.getElementById('categoryRows').innerHTML=cats.map(c=>{const r=rows.filter(s=>(s.category||'Uncategorised')===c);return `<div class="line"><span>${esc(c)}<small style="display:block;color:#666">${r.length} items sold</small></span><b>${money(sum(r))}</b></div>`}).join('')||'<div class="muted">No sales yet.</div>';document.getElementById('paymentProductRows').innerHTML=config.items.map(i=>{const c=rows.filter(s=>String(s.itemId)===String(i.id)&&s.payment==='Cash'),o=rows.filter(s=>String(s.itemId)===String(i.id)&&s.payment==='Online');if(!c.length&&!o.length)return '';return `<div class="line"><span>${esc(i.name)}<small style="display:block;color:#666">Cash: ${c.length} (${money(sum(c))}) · UPI: ${o.length} (${money(sum(o))})</small></span><b>${money(sum(c)+sum(o))}</b></div>`}).join('')||'<div class="muted">No sales yet.</div>';document.getElementById('paymentRows').innerHTML=`<div class="line"><span>Cash sales</span><b>${money(sum(cash))}</b></div><div class="line"><span>Online sales</span><b>${money(sum(online))}</b></div><div class="line"><span>Other adjustments (net)</span><b>${money(sumAdjustments(adj))}</b></div><div class="line"><span>Cash after adjustments</span><b>${money(cashNet)}</b></div><div class="line"><span>Online after adjustments</span><b>${money(onlineNet)}</b></div><div class="line"><span>Collection after adjustments</span><b>${money(cashNet+onlineNet)}</b></div>`;renderAdjustments()}
+function dayAdjustments(date=dateLocal()){return adjustments.filter(a=>a.date===date)}
+function sumAdjustments(rows){return rows.reduce((total,a)=>total+(a.action==='remove'?-1:1)*Number(a.amount||0),0)}
+function addAdjustment(){const amount=Number(document.getElementById('adjustAmount').value);if(!Number.isFinite(amount)||amount<=0){alert('Enter an amount greater than zero.');return}const now=new Date();const a={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),amount,action:document.getElementById('adjustAction').value,payment:document.getElementById('adjustPayment').value,note:document.getElementById('adjustNote').value.trim(),date:dateLocal(now),time:timeLocal(now),timestamp:now.getTime()};adjustments.push(a);persist();document.getElementById('adjustAmount').value='';document.getElementById('adjustNote').value='';renderAll();renderAdjustments();const toast=document.getElementById('entryToast');document.getElementById('entryToastTitle').textContent=a.action==='add'?'✓ Amount added':'✓ Amount removed';document.getElementById('entryToastDetail').textContent=`${money(a.amount)} · ${a.payment}`;toast.classList.add('show');if(entryToastTimer)clearTimeout(entryToastTimer);entryToastTimer=setTimeout(()=>toast.classList.remove('show'),1000)}
+function deleteAdjustment(id){if(confirm('Delete this amount adjustment?')){adjustments=adjustments.filter(a=>a.id!==id);persist();renderAll();renderAdjustments()}}
+function renderAdjustments(){const box=document.getElementById('adjustmentRows'),summary=document.getElementById('adjustmentSummary');if(!box||!summary)return;const rows=dayAdjustments().slice().reverse();summary.innerHTML=`<div class="line"><span>Today's adjustments (net)</span><b>${money(sumAdjustments(rows))}</b></div>`;box.innerHTML=rows.length?'<h3 style="margin-top:12px">Recent adjustments today</h3>'+rows.map(a=>`<div class="line"><span>${a.action==='add'?'＋ Added':'− Removed'} ${money(a.amount)} <small>(${esc(a.payment)}${a.note?' · '+esc(a.note):''})</small><br><small>${esc(a.time)}</small></span><button class="btn danger" style="padding:5px 9px;align-self:center" onclick="deleteAdjustment('${a.id}')">×</button></div>`).join(''):'<div class="muted">No lump-sum adjustments today.</div>'}
+function renderAll(){document.getElementById('appTitle').textContent=config.title||'SMART ORDER COUNTER';document.getElementById('headerSub').textContent=config.subtitle||'Fast sales • Local records';renderMenu();renderQuick();renderAdjustments();if(document.getElementById('summary').classList.contains('active'))renderSummary();if(document.getElementById('history').classList.contains('active'))renderHistory();if(document.getElementById('reports').classList.contains('active'))previewReport()}
+function undoLast(){if(!sales.length){alert('No sales to undo.');return}const s=sales[sales.length-1],key=s.batchId;const qty=key?sales.filter(x=>x.batchId===key).length:1;if(confirm(`Undo last entry: ${s.name}${qty>1?' ×'+qty:''}, ${money(Number(s.price)*qty)}, ${s.payment}?`)){if(key)sales=sales.filter(x=>x.batchId!==key);else sales.pop();persist();renderAll()}}
+function renderHistory(){const q=(document.getElementById('historySearch').value||'').toLowerCase(),pay=document.getElementById('historyPayment').value,from=document.getElementById('historyFrom').value,to=document.getElementById('historyTo').value;const rows=sales.filter(s=>(!q||s.name.toLowerCase().includes(q))&&(pay==='All'||s.payment===pay)&&(!from||s.date>=from)&&(!to||s.date<=to)).slice().reverse();document.getElementById('historyTotals').textContent=`${rows.length} entries • ${money(sum(rows))}`;document.getElementById('historyRows').innerHTML=rows.map(s=>`<tr><td>${esc(s.date)}<br>${esc(s.time)}</td><td>${esc(s.name)}</td><td>${money(s.price)}</td><td><span class="pill">${esc(s.payment)}</span></td><td><button class="btn danger" style="padding:5px" onclick="deleteSale('${s.id}')">×</button></td></tr>`).join('');document.getElementById('historyEmpty').classList.toggle('hidden',rows.length>0)}
+function deleteSale(id){if(confirm('Delete this sale entry?')){sales=sales.filter(s=>s.id!==id);persist();renderAll()}}
+function renderSettings(){document.getElementById('businessTitle').value=config.title||'';document.getElementById('businessSubtitle').value=config.subtitle||'';document.getElementById('currencySymbol').value=config.currency||'₹';const box=document.getElementById('editItems');box.innerHTML='';config.items.forEach((i,n)=>{const d=document.createElement('div');d.className='itemedit';d.innerHTML=`<b>Button ${esc(i.id)}</b><div class="fieldgrid"><div><label>Item name</label><input data-k="name" data-i="${n}" value="${esc(i.name)}"></div><div><label>Price</label><input type="number" min="0" step="0.01" data-k="price" data-i="${n}" value="${Number(i.price)}"></div></div><div class="fieldgrid"><div><label>Category</label><input data-k="category" data-i="${n}" value="${esc(i.category||'')}"></div><div class="checkrow"><input type="checkbox" data-k="enabled" data-i="${n}" ${i.enabled?'checked':''}><label style="margin:0">Show button</label></div></div><button class="btn danger" style="margin-top:8px" onclick="removeMenuItem(${n})">Remove item</button>`;box.appendChild(d)})}
+function addMenuItem(){const id=Math.max(0,...config.items.map(i=>Number(i.id)||0))+1;config.items.push({id,name:'New Item',price:0,category:'',enabled:true});renderSettings()}
+function removeMenuItem(n){if(confirm('Remove this item from the current menu? Past sales will remain in reports.')){config.items.splice(n,1);renderSettings()}}
+function saveSettings(){config.title=document.getElementById('businessTitle').value.trim()||'ORDER COUNTER';config.subtitle=document.getElementById('businessSubtitle').value.trim();config.currency=document.getElementById('currencySymbol').value.trim()||'₹';document.querySelectorAll('#editItems [data-k]').forEach(e=>{const i=config.items[Number(e.dataset.i)],k=e.dataset.k;if(k==='price')i.price=Math.max(0,Number(e.value)||0);else if(k==='enabled')i.enabled=e.checked;else i[k]=e.value.trim()});if(new Set(config.items.map(i=>String(i.id))).size!==config.items.length){alert('Each menu item must have a unique number.');return}persist();renderAll();alert('Settings saved. New prices apply to new sales; past records remain unchanged.')}
+function importMenuClick(){document.getElementById('menuFile').click()}
+function parseCSV(text){const lines=text.replace(/^\\uFEFF/,'').split(/\\r?\\n/).filter(l=>l.trim());return lines.map(line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'&&q){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out.map(v=>v.trim())})}
+function importMenuCSV(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const rows=parseCSV(r.result);let start=0;if(rows[0]&&rows[0][0].toLowerCase().includes('number'))start=1;const items=rows.slice(start).filter(r=>r.length>=3&&r[0]!==''&&r[1]!=='' ).map((r,n)=>({id:Number(r[0])||n+1,name:r[1],price:Number(r[2])||0,category:r[3]||'',enabled:r[4]===undefined||!['false','0','no','off'].includes(r[4].toLowerCase())}));if(!items.length)throw Error('No valid menu rows found.');if(new Set(items.map(i=>i.id)).size!==items.length)throw Error('Menu item numbers must be unique.');if(confirm(`Import ${items.length} menu items? This replaces the current menu setup. Existing sales are preserved.`)){config.items=items;renderSettings();alert('Menu imported. Tap Save settings to apply it.')}}catch(e){alert('Could not import menu: '+e.message)}ev.target.value=''};r.readAsText(f)}
+function downloadMenuTemplate(){downloadText('Number,Name,Price,Category,Enabled\\n1,Regular Khichu,40,Khichu,true\\n2,Khichu Bites,50,Khichu,true\\n3,Butter Corn,40,Sweet Corn,true\\n4,Butter Corn Chaat,60,Sweet Corn,true\\n5,Cheese Butter Corn Chaat,80,Sweet Corn,true\\n','menu_template.csv','text/csv;charset=utf-8')}
+function fillReportItems(){const s=document.getElementById('rItem'),old=s.value;s.innerHTML='<option value="All">All items</option>'+config.items.map(i=>`<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');if([...s.options].some(o=>o.value===old))s.value=old}
+function setTodayReport(){const d=dateLocal();rStartDate.value=d;rEndDate.value=d;rStartTime.value='00:00';rEndTime.value='23:59';previewReport()}
+function setYesterdayReport(){const d=new Date();d.setDate(d.getDate()-1);const s=dateLocal(d);rStartDate.value=s;rEndDate.value=s;rStartTime.value='00:00';rEndTime.value='23:59';previewReport()}
+function getReportRows(){const sd=rStartDate.value,ed=rEndDate.value,st=rStartTime.value||'00:00',et=rEndTime.value||'23:59';if(!sd||!ed)throw Error('Choose both start and end dates.');if(sd>ed||(sd===ed&&st>et))throw Error('Start date/time must be before end date/time.');const start=sd+'T'+st,end=ed+'T'+et;return sales.filter(s=>{const dt=s.date+'T'+s.time.slice(0,5);return dt>=start&&dt<=end&&(rPayment.value==='All'||s.payment===rPayment.value)&&(rItem.value==='All'||String(s.itemId)===rItem.value)})}
+function previewReport(){try{const rows=getReportRows();const cash=rows.filter(s=>s.payment==='Cash'),online=rows.filter(s=>s.payment==='Online');document.getElementById('reportPreview').innerHTML=`<div class="line"><span>Matching sales entries</span><b>${rows.length}</b></div><div class="line"><span>Total sales</span><b>${money(sum(rows))}</b></div><div class="line"><span>Cash</span><b>${money(sum(cash))}</b></div><div class="line"><span>Online</span><b>${money(sum(online))}</b></div>`}catch(e){document.getElementById('reportPreview').textContent=e.message}}
+['rStartDate','rStartTime','rEndDate','rEndTime','rPayment','rItem'].forEach(id=>document.getElementById(id).addEventListener('change',previewReport));
+function downloadReport(){let rows;try{rows=getReportRows()}catch(e){alert(e.message);return}const cash=rows.filter(s=>s.payment==='Cash'),online=rows.filter(s=>s.payment==='Online');const data=[['CUSTOM SALES REPORT'],['Start date',rStartDate.value,'Start time',rStartTime.value],['End date',rEndDate.value,'End time',rEndTime.value],['Payment filter',rPayment.value,'Item filter',document.getElementById('rItem').selectedOptions[0].text],[],['SUMMARY'],['Number of entries',rows.length],['Total sales',sum(rows)],['Cash sales',sum(cash)],['Online sales',sum(online)],[],['Sale ID','Menu No','Item','Category','Unit Price','Payment','Date','Time','Quantity','Line Total']];rows.forEach(s=>data.push([s.id,s.itemId,s.name,s.category,s.price,s.payment,s.date,s.time,1,s.price]));downloadText(data.map(r=>r.map(csvCell).join(',')).join('\r\n'),`sales_${rStartDate.value}_to_${rEndDate.value}.csv`,'text/csv;charset=utf-8');}
+function exportAllCSV(){const data=[['Sale ID','Menu No','Item','Category','Unit Price','Payment','Date','Time','Quantity','Line Total']];sales.forEach(s=>data.push([s.id,s.itemId,s.name,s.category,s.price,s.payment,s.date,s.time,1,s.price]));downloadText(data.map(r=>r.map(csvCell).join(',')).join('\r\n'),'all_sales.csv','text/csv;charset=utf-8')}
+function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
+function downloadText(data,name,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob(['\ufeff',data],{type}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function backupAll(){downloadText(JSON.stringify({app:'Smart Order Counter',version:2,exportedAt:new Date().toISOString(),config,sales,adjustments},null,2),'order_counter_backup.json','application/json')}
+function restoreBackupClick(){document.getElementById('backupFile').click()}
+function restoreBackup(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const b=JSON.parse(r.result);if(!b.config||!Array.isArray(b.sales))throw Error('Invalid backup file');if(confirm(`Restore backup with ${b.sales.length} sales? Current menu and sales will be replaced.`)){config=b.config;sales=b.sales;adjustments=Array.isArray(b.adjustments)?b.adjustments:[];persist();renderAll();alert('Backup restored.')}}catch(e){alert('Restore failed: '+e.message)}ev.target.value=''};r.readAsText(f)}
+function clearSales(){if(confirm('Permanently delete all recorded sales from this phone? Download a backup first if needed.')){if(confirm('Confirm again: delete every sale?')){sales=[];persist();renderAll();alert('All sales cleared.')}}}
+function init(){const d=dateLocal();rStartDate.value=d;rEndDate.value=d;renderAll();fillReportItems()}
+init();
+</script>
+<div id="entryToast" role="status" aria-live="polite"><span class="toast-check">✓</span><div><div class="toast-title" id="entryToastTitle">Entry added</div><div class="toast-detail" id="entryToastDetail"></div></div></div>
+</body>
+</html>
